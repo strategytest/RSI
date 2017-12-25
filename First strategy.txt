@@ -1,0 +1,37 @@
+from QuantConnect.Indicators import IndicatorExtensions
+
+class SMATrendAlgo(QCAlgorithm):
+
+    def Initialize(self):
+        # Define variables
+        self.period = 20                                    #SMA period
+        self.long_BND = 1                                   #long 100% of capital in BND
+        self.short_BND = 0                                  #short 100% of capital in BND
+        self.long_SSO = 1                                   #long 100% of capital in BND
+        self.short_SSO = 0                                  #short 100% of capital in BND
+        self.SetStartDate(2014, 01, 01)                     #Set Start Date
+        self.SetEndDate(2017, 01, 01)                       #Set End Date
+        self.SetCash(100000)                                #Set Strategy Cash
+        
+        # Calculate ratio, sma, etc
+        self.AddEquity("SPY", Resolution.Daily)
+        self.AddEquity("TLT", Resolution.Daily)
+        self.AddEquity("BND", Resolution.Daily)
+        self.AddEquity("SSO", Resolution.Daily)
+        
+        self.spy = self.Identity("SPY")
+        self.tlt = self.Identity("TLT")
+        self.ratio = IndicatorExtensions.Over(self.spy, self.tlt)
+        self.sma20 = IndicatorExtensions.SMA(self.ratio, self.period)
+
+    def OnData(self, data):
+        if not self.ratio.IsReady: return
+        if not self.sma20.IsReady: return
+
+        if  self.sma20.Current.Value > self.ratio.Current.Value: 
+            self.SetHoldings("BND", self.long_BND)        #long 100% BND
+            self.SetHoldings("SSO", self.short_SSO)       #Short 100% SSO
+  
+        elif self.sma20.Current.Value < self.ratio.Current.Value: #long 100% SSO
+            self.SetHoldings("SSO", self.long_SSO)        #long 100% SSO
+            self.SetHoldings("BND", self.short_BND)       #Short 100% BND
